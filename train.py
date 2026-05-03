@@ -1,78 +1,138 @@
+import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
 
-# ─── ĐỊNH NGHĨA KIẾN TRÚC MÔ HÌNH (TƯƠNG THÍCH 100% RTL) ──────────────
-class CNN1D_DAS(nn.Module):
-    def __init__(self, cin=4, num_classes=3):
+# ==========================================================
+# 1. KIẾN TRÚC MẠNG TƯƠNG THÍCH 100% VỚI RTL VIRTEX-7
+# ==========================================================
+class CNN1D_FPGA_Core(nn.Module):
+    """ Nửa này sẽ được lượng tử hóa và nạp xuống chip FPGA. 
+        Đầu vào: (Batch, 4, 64) """
+    def __init__(self):
         super().__init__()
-        
-        # Layer 1: Standard Conv1D -> BatchNorm -> ReLU
-        # Tương đương op=0 trong FSM RTL
-        self.conv1 = nn.Conv1d(cin, 8, kernel_size=3, padding=1, bias=True)
-        self.bn1   = nn.BatchNorm1d(8)
+        # Layer 0: Conv1D (cin=4, cout=8, k=3, pad=1)
+        self.conv1 = nn.Conv1d(4, 8, kernel_size=3, padding=1, bias=True)
+        self.bn1 = nn.BatchNorm1d(8)
         self.relu1 = nn.ReLU()
         
-        # Layer 2: Depthwise Conv1D -> BatchNorm -> ReLU
-        # Tương đương op=1 trong FSM RTL (groups = số kênh đầu vào)
-        self.dw1   = nn.Conv1d(8, 8, kernel_size=3, padding=1, groups=8, bias=True)
-        self.bn2   = nn.BatchNorm1d(8)
-        self.relu2 = nn.ReLU()
-        
-        # Layer 3: MaxPool1D
-        # Tương đương op=2 trong FSM RTL
+        # Layer 1: MaxPool1D (k=2, stride=2)
+        # Độ dài 64 bị giảm còn 32
         self.pool1 = nn.MaxPool1d(kernel_size=2, stride=2)
         
-        # Layer 4: Pointwise Conv1D (k=1) để gom về 3 classes (P-wave, S-wave, Noise)
-        self.pw1   = nn.Conv1d(8, num_classes, kernel_size=1, bias=True)
+        # Layer 2: Depthwise Conv1D (cin=8, cout=8, k=3, pad=1)
+        self.dwconv = nn.Conv1d(8, 8, kernel_size=3, padding=1, groups=8, bias=True)
+        self.bn2 = nn.BatchNorm1d(8)
+        self.relu2 = nn.ReLU()
 
     def forward(self, x):
         x = self.relu1(self.bn1(self.conv1(x)))
-        x = self.relu2(self.bn2(self.dw1(x)))
         x = self.pool1(x)
-        x = self.pw1(x)
-        return x  # Kích thước đầu ra: [Batch, 3_classes, Len_out]
+        x = self.relu2(self.bn2(self.dwconv(x)))
+        return x  # Đầu ra: (Batch, 8, 32)
 
-# ─── KỊCH BẢN CHẠY & LƯU TRỮ ──────────────────────────────────────────
+class Full_System(nn.Module):
+    """ Tổng thể hệ thống: FPGA trích xuất + CPU phân loại """
+    def __init__(self):
+        super().__init__()
+        self.fpga_core = CNN1D_FPGA_Core()
+        
+        # Nửa này chạy trên CPU (Chỉ tốn vài chục phép MAC)
+        self.cpu_head = nn.Sequential(
+            nn.AdaptiveAvgPool1d(1), # Ép ma trận (8, 32) thành vector (8, 1)
+            nn.Flatten(),            # San phẳng thành mảng 1D (8,)
+            nn.Linear(8, 2)          # Phân loại: 0 (Noise) và 1 (P-Wave)
+        )
+
+    def forward(self, x):
+        features = self.fpga_core(x)
+        logits = self.cpu_head(features)
+        return logits
+
+# ==========================================================
+# 2. HÀM LOAD DATASET ĐÃ BÀO
+# ==========================================================
+def load_data(split, batch_size=128, shuffle=True):
+    print(f"📦 Đang tải dữ liệu {split.upper()}...")
+    X_path = os.path.join("dataset", f"X_{split}.npy")
+    Y_path = os.path.join("dataset", f"Y_{split}.npy")
+    
+    if not os.path.exists(X_path):
+        raise FileNotFoundError(f"Không tìm thấy {X_path}. Đã chạy build_dataset.py chưa?")
+        
+    X = np.load(X_path)
+    Y = np.load(Y_path)
+    
+    # PyTorch yêu cầu input dạng FloatTensor và Label dạng LongTensor
+    tensor_x = torch.FloatTensor(X)
+    tensor_y = torch.LongTensor(Y)
+    
+    dataset = TensorDataset(tensor_x, tensor_y)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+
+# ==========================================================
+# 3. VÒNG LẶP HUẤN LUYỆN (TRAINING LOOP)
+# ==========================================================
 if __name__ == '__main__':
-    print("🚀 Khởi tạo mô hình CNN1D_DAS...")
-    # Khóa seed để kết quả ổn định qua các lần chạy
+    # Khóa hạt giống để đảm bảo chạy lại luôn ra cùng 1 kết quả
     torch.manual_seed(42)
     
-    model = CNN1D_DAS(cin=4, num_classes=3)
+    # Tải dữ liệu thật vào Loader
+    train_loader = load_data('train', batch_size=256, shuffle=True)
+    val_loader   = load_data('val', batch_size=256, shuffle=False)
     
-    # 1. TẠO DỮ LIỆU GIẢ LẬP (Dummy Data)
-    # Giả lập 16 đoạn tín hiệu DAS, mỗi đoạn có 4 kênh, độ dài 64 mẫu
-    B, C, L_in = 16, 4, 64
-    dummy_inputs = torch.randn(B, C, L_in)
+    model = Full_System()
     
-    # Kích thước sau MaxPool(stride=2) sẽ giảm 1 nửa: L_out = 32
-    # Mục tiêu: Phân loại từng điểm (Point-wise classification) thành 3 nhãn (0, 1, 2)
-    L_out = 32
-    dummy_targets = torch.randint(0, 3, (B, L_out))
-    
-    # 2. CẤU HÌNH HUẤN LUYỆN
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    # Hàm Loss và Optimizer chuẩn mực
     criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.005)
     
-    print("⏳ Đang Huấn luyện (Train) để làm xô lệch tham số BatchNorm...")
-    model.train() # Kích hoạt chế độ Train
+    EPOCHS = 15
+    best_acc = 0.0
+    best_model_path = 'best_model_weights.pth'
     
-    # Chạy 5 Epochs để Model "học" và cập nhật Running Mean/Var
-    for epoch in range(5):
-        optimizer.zero_grad()
-        outputs = model(dummy_inputs)
-        loss = criterion(outputs, dummy_targets)
-        loss.backward()
-        optimizer.step()
-        print(f"   Epoch {epoch+1}/5 | Loss: {loss.item():.4f}")
+    print("\n🚀 BẮT ĐẦU HUẤN LUYỆN TRÊN DỮ LIỆU SÓNG DAS THẬT...")
+    for epoch in range(EPOCHS):
+        model.train() # Kích hoạt chế độ học
+        total_loss = 0
+        correct = 0
+        total = 0
         
-    print("✅ Training Dummy Data hoàn tất!")
-    
-    # 3. TỬ HUYỆT PHẦN CỨNG: BẮT BUỘC ĐÓNG BĂNG MÔ HÌNH
-    model.eval()
-    
-    # 4. LƯU TRỌNG SỐ FLOAT32
-    save_path = 'das_model_float.pth'
-    torch.save(model.state_dict(), save_path)
-    print(f"💾 Đã lưu trọng số (Đã chốt Running Stats) vào: {save_path}")
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()       # Xóa gradient cũ
+            outputs = model(inputs)     # Phán đoán
+            loss = criterion(outputs, labels) # Tính lỗi
+            loss.backward()             # Lan truyền ngược
+            optimizer.step()            # Cập nhật trọng số
+            
+            total_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            
+        train_acc = 100 * correct / total
+        
+        # Đánh giá trên tập Validation
+        model.eval() # KHÓA HỌC (Quan trọng để chốt BatchNorm)
+        val_correct = 0
+        val_total = 0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                _, predicted = torch.max(outputs.data, 1)
+                val_total += labels.size(0)
+                val_correct += (predicted == labels).sum().item()
+                
+        val_acc = 100 * val_correct / val_total
+        
+        print(f"Epoch {epoch+1:02d}/{EPOCHS} | Train Loss: {total_loss/len(train_loader):.4f} - Train Acc: {train_acc:.2f}% | Val Acc: {val_acc:.2f}%")
+        
+        # Lưu lại file trọng số tốt nhất
+        if val_acc > best_acc:
+            best_acc = val_acc
+            torch.save(model.state_dict(), best_model_path)
+            print(f"  ⭐ Đã lưu kỷ lục mới: {best_acc:.2f}%")
+            
+    print(f"\n🎉 HOÀN TẤT HUẤN LUYỆN! Trọng số xịn nhất ({best_acc:.2f}%) nằm ở file '{best_model_path}'")

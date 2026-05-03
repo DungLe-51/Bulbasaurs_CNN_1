@@ -3,10 +3,10 @@
 # SW Build 5076996 on Wed May 22 18:36:09 MDT 2024
 # IP Build 5075265 on Wed May 22 21:45:21 MDT 2024
 # SharedData Build 5076995 on Wed May 22 18:29:18 MDT 2024
-# Start of session at: Sun May  3 13:31:53 2026
-# Process ID: 16291
+# Start of session at: Sun May  3 17:58:34 2026
+# Process ID: 71568
 # Current directory: /root/Bulbasaurs_CNN
-# Command line: vivado -mode batch -source run_sim.tcl
+# Command line: vivado
 # Log file: /root/Bulbasaurs_CNN/vivado.log
 # Journal file: /root/Bulbasaurs_CNN/vivado.jou
 # Running On        :DESKTOP-VE06HML
@@ -19,7 +19,13 @@
 # Host memory       :12543 MB
 # Swap memory       :12884 MB
 # Total Virtual     :25428 MB
-# Available Virtual :23952 MB
+# Available Virtual :23791 MB
 #-----------------------------------------------------------
-source run_sim.tcl
+start_gui
+open_project /root/Bulbasaurs_CNN/project_1/project_1.xpr
+update_compile_order -fileset sources_1
+launch_simulation
 source tb_cnn1d_core_top.tcl
+relaunch_sim
+run all
+close_sim
