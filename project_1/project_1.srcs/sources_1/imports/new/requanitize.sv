@@ -16,27 +16,24 @@ module requantize #(
     logic signed [63:0] min_s;
 
     always_comb begin
-        // 1. Phép nhân 64-bit
         prod_s = $signed(acc_i) * $signed(mult_i);
 
-        // 2. Làm tròn chuẩn TFLite AI (Luôn cộng 0.5 bất kể âm/dương)
         if (shift_i == 5'd0) begin
             round_s = prod_s;
-        end else begin
+        end else if (prod_s >= 0) begin
             round_s = prod_s + (64'sd1 <<< (shift_i - 1));
+        end else begin
+            round_s = prod_s - (64'sd1 <<< (shift_i - 1));
         end
 
-        // 3. Dịch bit có dấu (Arithmetic Right Shift)
         shifted_s = round_s >>> shift_i;
-
-        // 4. Giới hạn tràn số (Saturation)
         max_s = (64'sd1 <<< (OUT_W-1)) - 64'sd1;
         min_s = -(64'sd1 <<< (OUT_W-1));
 
         if (shifted_s > max_s) begin
-            data_o = {1'b0, {(OUT_W-1){1'b1}}}; // 127
+            data_o = {1'b0, {(OUT_W-1){1'b1}}};
         end else if (shifted_s < min_s) begin
-            data_o = {1'b1, {(OUT_W-1){1'b0}}}; // -128
+            data_o = {1'b1, {(OUT_W-1){1'b0}}};
         end else begin
             data_o = shifted_s[OUT_W-1:0];
         end

@@ -1,0 +1,88 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2024.1 (lin64) Build 5076996 Wed May 22 18:36:09 MDT 2024
+| Date         : Sat May  2 23:08:54 2026
+| Host         : DESKTOP-VE06HML running 64-bit Ubuntu 22.04.5 LTS
+| Command      : report_control_sets -verbose -file cnn1d_core_top_control_sets_placed.rpt
+| Design       : cnn1d_core_top
+| Device       : xc7k70t
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Control Set Information
+
+Table of Contents
+-----------------
+1. Summary
+2. Histogram
+3. Flip-Flop Distribution
+4. Detailed Control Set Information
+
+1. Summary
+----------
+
++----------------------------------------------------------+-------+
+|                          Status                          | Count |
++----------------------------------------------------------+-------+
+| Total control sets                                       |    10 |
+|    Minimum number of control sets                        |    10 |
+|    Addition due to synthesis replication                 |     0 |
+|    Addition due to physical synthesis replication        |     0 |
+| Unused register locations in slices containing registers |    17 |
++----------------------------------------------------------+-------+
+* Control sets can be merged at opt_design using control_set_merge or merge_equivalent_drivers
+** Run report_qor_suggestions for automated merging and remapping suggestions
+
+
+2. Histogram
+------------
+
++--------------------+-------+
+|       Fanout       | Count |
++--------------------+-------+
+| Total control sets |    10 |
+| >= 0 to < 4        |     0 |
+| >= 4 to < 6        |     1 |
+| >= 6 to < 8        |     1 |
+| >= 8 to < 10       |     2 |
+| >= 10 to < 12      |     1 |
+| >= 12 to < 14      |     0 |
+| >= 14 to < 16      |     0 |
+| >= 16              |     5 |
++--------------------+-------+
+* Control sets can be remapped at either synth_design or opt_design
+
+
+3. Flip-Flop Distribution
+-------------------------
+
++--------------+-----------------------+------------------------+-----------------+--------------+
+| Clock Enable | Synchronous Set/Reset | Asynchronous Set/Reset | Total Registers | Total Slices |
++--------------+-----------------------+------------------------+-----------------+--------------+
+| No           | No                    | No                     |               5 |            5 |
+| No           | No                    | Yes                    |               6 |            5 |
+| No           | Yes                   | No                     |               0 |            0 |
+| Yes          | No                    | No                     |               0 |            0 |
+| Yes          | No                    | Yes                    |             268 |          114 |
+| Yes          | Yes                   | No                     |               0 |            0 |
++--------------+-----------------------+------------------------+-----------------+--------------+
+
+
+4. Detailed Control Set Information
+-----------------------------------
+
++----------------+----------------------------------------------+-------------------------+------------------+----------------+--------------+
+|  Clock Signal  |                 Enable Signal                |     Set/Reset Signal    | Slice Load Count | Bel Load Count | Bels / Slice |
++----------------+----------------------------------------------+-------------------------+------------------+----------------+--------------+
+|  clk_IBUF_BUFG |                                              |                         |                5 |              5 |         1.00 |
+|  clk_IBUF_BUFG |                                              | u_layer_desc_regs/rst_n |                5 |              6 |         1.20 |
+|  clk_IBUF_BUFG | u_controller/FSM_onehot_state_q_reg[11]_0[4] | u_layer_desc_regs/rst_n |                5 |              8 |         1.60 |
+|  clk_IBUF_BUFG | u_controller/k_q[7]_i_1_n_0                  | u_layer_desc_regs/rst_n |                3 |              8 |         2.67 |
+|  clk_IBUF_BUFG | u_controller/FSM_onehot_state_q[11]_i_1_n_0  | u_layer_desc_regs/rst_n |                5 |             11 |         2.20 |
+|  clk_IBUF_BUFG | u_controller/oc_q[0]_i_1_n_0                 | u_layer_desc_regs/rst_n |                4 |             16 |         4.00 |
+|  clk_IBUF_BUFG | u_controller/ic_q[15]_i_1_n_0                | u_layer_desc_regs/rst_n |                6 |             16 |         2.67 |
+|  clk_IBUF_BUFG | u_controller/t_q[15]_i_1_n_0                 | u_layer_desc_regs/rst_n |                4 |             16 |         4.00 |
+|  clk_IBUF_BUFG | u_controller/E[0]                            | u_layer_desc_regs/rst_n |               19 |             32 |         1.68 |
+|  clk_IBUF_BUFG | desc_we_i_IBUF                               | u_layer_desc_regs/rst_n |               68 |            161 |         2.37 |
++----------------+----------------------------------------------+-------------------------+------------------+----------------+--------------+
+
+

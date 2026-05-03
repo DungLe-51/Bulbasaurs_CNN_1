@@ -1,0 +1,20 @@
+# Bỏ qua môi trường ảo Python
+cnn_env/
+__pycache__/
+
+# Bỏ qua rác của Vivado
+.Xil/
+*.jou
+*.log
+*.pb
+*.wdb
+*.dir/
+*.str
+# Bỏ qua thư mục sinh ra trong quá trình mô phỏng/tổng hợp
+project_1/project_1.sim/
+project_1/project_1.cache/
+project_1/project_1.hw/
+project_1/project_1.ip_user_files/
+
+# Bỏ qua file data sinh ra tự động
+mem_export/

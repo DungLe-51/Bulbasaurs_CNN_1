@@ -1,0 +1,31 @@
+# compile verilog/system verilog design source files
+sv xil_defaultlib  \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/activation_relu.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/adder_tree_1D.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/bank_arbiter.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/bank_loader.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/bias_scale_bank.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/cnn1D_core_top.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/cnn1d_controller.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/ifm_addr_gen.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/ifm_pingpong_bank.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/layer_desc.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/mac_int8.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/maxpool1D.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/ofm_addr_gen.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/ofm_pingpong_bank.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/padding.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/pe_array.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/pe_lane.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/requanitize.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/new/tdp_bram_1clk.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/weight_addr_gen.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/weight_sram_bank.sv" \
+"../../../../CNN_AGAiN_sim.srcs/sources_1/imports/new/write_back.sv" \
+"../../../../../CNN_AGAiN.srcs/sim_1/new/tb_cnn1d_core_top.sv" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort
